@@ -131,7 +131,6 @@ FisherStrategie = proc {|classifiers, prior, n, words|
             end
         end
     end
-    p map2
 
     Distribution.new :MAP, map2
 }
