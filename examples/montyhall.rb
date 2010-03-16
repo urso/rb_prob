@@ -26,7 +26,7 @@ def winnerProb(prob)
         end
     end
 
-    prob.map $testWinner
+    prob.map &$testWinner
 end
 
 def stay(prob)
@@ -59,7 +59,7 @@ opened = hideThenChoose.dep do |s|
 end
 #p opened
 
-p winnerProb(stay(opened))
-p winnerProb(switch(opened)).most_probable
+puts 'if stay most probable result: ', winnerProb(stay(opened)).most_probable
+puts 'if switch most probable result: ', winnerProb(switch(opened)).most_probable
 
 
