@@ -184,7 +184,7 @@ module Probably
 
         def mult(dist2)
             self.dep do |k|
-                if f then dist2.map { |k2| yield(k, k2) }
+                if block_given? then dist2.map { |k2| yield(k, k2) }
                 else      dist2.map { |k2| [k, k2] }
                 end
             end
