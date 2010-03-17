@@ -1,5 +1,7 @@
 
-require '../src/prob'
+require 'rubygems'
+
+gem 'rb_prob'; require 'prob'
 include Probably
 
 PBulgary = choose(0.001,  :B, :notB )

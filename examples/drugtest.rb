@@ -1,5 +1,7 @@
 
-require '../src/prob'
+require 'rubygems'
+
+gem 'rb_prob'; require 'prob'
 include Probably
 
 def drugTest(puser = 0.001, p_posifuser = 0.99, p_posifclean = 0.01)

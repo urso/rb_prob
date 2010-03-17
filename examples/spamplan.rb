@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 
-require '../src/prob'
+require 'rubygems'
+
+gem 'rb_prob'; require 'prob'
 include Probably
 
 S = [:Spam, :Ham]
