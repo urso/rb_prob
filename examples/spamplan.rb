@@ -43,7 +43,7 @@ class SpamBaseKnowledge
     include SpamDatabaseProbabilities
 
     def initialize
-        @msgCounts = [102, 57]
+        @msgCounts = [103, 57]
         @wordCountTable = block1({
             "the" => [1, 2],
             "quick" => [1, 1],
@@ -92,19 +92,61 @@ class SpamBaseKnowledge
     end
 end
 
-NaiveBayesianStrategie = proc {|classifiers, prior, _, _|
-    # use naive bayesian to find probability of spam using classifiers
-    classifiers.reduce(prior) {|prior, prob| 
-        prior.dep {|type|
-            choose(prob.probability(type),true,false).event_dep(just true) {
-                mkState type
-            }
+#
+# P(S|Words) = < P(S|W1) * P(S|W2) * ... >
+#            = < P(W1|S) * prior > * < P(W2|S) * prior> * ...
+# 
+# with:
+#   P(S|Wi) = P(Wi|S) * prior
+#             ---------------
+#                  P(Wi)
+# 
+# but classifiers already premultiplied with uniform prior spam/ham
+# distribution:
+# Suppose P_uni is uniform distribution for spam/ham, thus P_uni(spam) = 0.5
+# and P_uni(ham) = 0.5
+# 
+#                  P(Wi | S) * P_uni(S)             P(Wi | S) * P_uni(S)
+#  P_uni(S | Wi) = --------------------  =  ------------------------------------
+#                       P(Wi)               Sum(s={spam,ham}) P(Wi|s) * P_uni(s)
+# 
+#                = < P(Wi|S) * P_uni(S) >
+# 
+# now Suppose prior is given, thus with new prior:
+# 
+#                 P(Wi|S) * P_prior(S)     P_uni(S|Wi) * P_prior(S)
+# P_prior(S|Wi) = --------------------  =  ------------------------
+#                       P(Wi)                      P_uni(S)
+# 
+#               = < P(Wi|S) * P_prior(S) >
+# 
+#               = < P_uni(S|Wi) * P_prior(S) >
+# 
+# => (since findClassifiers in class SpamClassifier returns P_uni(S|Wi) for
+# each word found in DB:
+# 
+# P(S|Words) = < P(S|W1) * P(S|W2) * ... >
+#            = < P(W1|S) * P_prior(S) > * < P(W2|S) * P_prior(S) > * ...
+#            = < P_uni(S|W1) * P_prior(S) > * < P_uni(S|W2) * P_prior(S) > * ...
+#    
+BayesianStrategie = proc {|classifiers, prior, _, _|
+    classifiers.map { |c|
+        # compute < P_uni(S|Wi) * P_prior(S) > 
+        # and lift into Option type for doing bayesian inference (invalid cases
+        # are encoded with nil (it is important to use nil until the end for
+        # invalid cases for normalization).
+        prior.dep { |t|
+            c.map { |t_c| t == t_c ? t : nil }
+        }
+    }.inject { |da, db| # multiply all probabilities (naive bayesian part)
+        da.dep { |t|
+            db.map { |t_b| t == t_b ? t : nil }
         }
     }.normalize
 }
 
 FisherStrategie = proc {|classifiers, prior, n, words|
-    hypothesis = NaiveBayesianStrategie.call(classifiers, prior, n, words)
+    hypothesis = BayesianStrategie.call(classifiers, prior, n, words)
     map = Hash.new(0)
 
     dof = classifiers.length # dof / 2
@@ -183,7 +225,7 @@ end
 
 # learned database
 
-classifiers = [ SpamClassifier.new(SpamBaseKnowledge.new, NaiveBayesianStrategie), 
+classifiers = [ SpamClassifier.new(SpamBaseKnowledge.new, BayesianStrategie), 
                 SpamClassifier.new(SpamBaseKnowledge.new, FisherStrategie) ]
 
 testCorpus = [["free"],
