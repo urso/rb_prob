@@ -2,6 +2,8 @@
 # The Probably module provides functions and a discrete Distribution class for
 # monadic functional probabilistic programming in ruby.
 
+puts 'loading rb_prob'
+
 module Probably
 
     # simple helper function running a given block with its first argument and
