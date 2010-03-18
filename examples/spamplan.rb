@@ -222,16 +222,27 @@ BayesianStrategy = proc {|classifiers, prior, _, _|
 # use bayesian classifier and analyse using fhisher's method
 FisherStrategy = proc {|classifiers, prior, n, words|
     hypothesis = BayesianStrategy.call(classifiers, prior, n, words)
+    dof = classifiers.length # dof / 2
     map = Hash.new(0)
 
-    dof = classifiers.length # dof / 2
 
     hypothesis.each do |k,p|
-        chi = -2.0 * Math.log(p)
-        m = 0.5 * chi;
-        t = Math.exp(-m)
+        # chi_square = -2.0 * sum(i) { log(p_i) } 
+        #            = -2.0 * log(p)
+        #
+        # copmute p-value by
+        # with n = dof
+        #
+        # integral( x^(n-1) * exp(-x/2) / (gamma(n) * 2^n) , -2 log(p), inf, dx)
+        #
+        #   integral ( x^(n-1) * exp(-x/2), -2 log(p), inf, dx) 
+        # = ---------------------------------------------------
+        #                       gamma(n) * 2^n
 
-        # compute inverse chi square
+        m = -Math.log(p) # 0.5 chi
+        t = p # exp(-m) = exp(log(p)) = p
+
+        # compute p value
         tmp = 1.upto(dof-1).reduce(t) {|sum,i|
             t *= m / i.to_f
             sum + t
@@ -239,17 +250,7 @@ FisherStrategy = proc {|classifiers, prior, n, words|
 
         map[k] = if tmp < 1.0 then tmp else 1.0 end
     end
-
-    map2 = Hash.new(0)
-    for k in map.keys
-        for other in map.keys
-            if k != other
-                map2[k] += 1 - map[other]
-            end
-        end
-    end
-
-    Distribution.new :MAP, map2
+    map
 }
 
 # other part of the database computing, scoring and storing the classifiers P_uni(S|Wi)
