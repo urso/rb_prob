@@ -4,6 +4,9 @@ require 'rubygems'
 gem 'rb_prob'; require 'prob'
 include Probably
 
+# same problem as in diagnosis.rb, but with drug users and Test.
+# just using some different methods to implement the same queries...
+
 def drugTest(puser = 0.001, p_posifuser = 0.99, p_posifclean = 0.01)
     choose(puser, :User, :Clean).dep { |user|
         choose(if user == :User then p_posifuser else p_posifclean end,

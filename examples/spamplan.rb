@@ -5,8 +5,115 @@ require 'rubygems'
 gem 'rb_prob'; require 'prob'
 include Probably
 
+# Bayesian Spam filter example. 
+# We try to find the probability of a message it's classification being spam
+# or ham using a naive bayesian filter and a second filter using fisher's
+# methods to analyse the plausibility of the filter its result.
+#
+# In essence the bayesian filter tries to find the probability for the message
+# being spam using the message its features and previously seen messages.
+#
+# Suppose we have the random variables:
+# S = {:Spam, :Ham}
+# Document = Set of words/features = {Wi ... Wn}
+# Wi = word Wi present or not present {true, false}
+#
+# then
+#
+# P(S|Document) = P(S|W1) * P(S|W2) * ... * P(S|Wn)
+# 
+# meaning we assume all feature/words to be statistically independent (hence
+# naive bayesian filter).
+#
+# Finding words in old message and their spam/ham count we can drive the
+# filter.
+#
+# Next let's find the probability for spam given a word P(S|Wi):
+#
+#            P(Wi|S) * P(S)
+# P(S|Wi) = ---------------
+#                P(Wi)
+#
+# But to minimize computational effort we precompute some a classifier for each
+# word assuming a uniform prior distrubition P(S) and put in the true prior
+# later. So we can store the classifiers direclty in our database instead of
+# recomputing them over and over again.
+#
+# P(S|Document) = < P(S|W1) * P(S|W2) * ... >
+#            = < P(W1|S) * prior * P(W2|S) * prior * ... >
+#
+# here < P(...) > stands for "alpha * P(...)" and expresses normalization which
+# is done automatically by our library. Thus
+#
+#             P(Wi|S) * P(S)
+#  P(S|Wi) = ---------------- = < P(Wi|S) * P(S) >
+#                 P(Wi)
+#
+# We want to explain how the classifiers are precomputed and how these
+# precomputed classifiers are used to do the classification now:
+# 
+# First let's precompute our classifiers:
+#
+# Suppose P_uni is uniform distribution for spam/ham, thus P_uni(spam) = 0.5
+# and P_uni(ham) = 0.5. Then
+# 
+#                  P(Wi | S) * P_uni(S)             P(Wi | S) * P_uni(S)
+#  P_uni(S | Wi) = --------------------  =  ------------------------------------
+#                       P(Wi)               Sum(s={spam,ham}) P(Wi|s) * P_uni(s)
+# 
+#                = < P(Wi|S) * P_uni(S) >
+# 
+# now Suppose the real prior is given, thus with new prior:
+#
+# P_prior(S|Wi) = < P(Wi|S) * P_prior(S) >
+# 
+#                 P(Wi|S) * P_prior(S)     P_uni(S|Wi) * P_prior(S)
+#               = --------------------  =  ------------------------
+#                       P(Wi)                      P_uni(S)
+# 
+#               = < P_uni(S|Wi) * P_prior(S) >
+#
+#               = P(S|Wi)
+# 
+# P(S|Document) = < P(S|W1) * P(S|W2) * ... >
+#               = < P(W1|S) * P_prior(S) > * < P(W2|S) * P_prior(S) > * ...
+#               = < P_uni(S|W1) * P_prior(S) > * < P_uni(S|W2) * P_prior(S) > * ...
+#
+# Using these, our classifiers to store in the database are P_uni(S|Wi) for
+# each word found during learning. So when learning from new message not all
+# classifiers need to be recomputed. Alternatively one may want to store
+# P_prior(S|Wi) in the database, but when learning new messages all classifiers
+# need to be updated then. One may even assume the prior to alway uniformly
+# distributed. In that case P(S|Document) becomes
+# P(S|Document) = < P_uni(S|W1) * P_uni(S|W2) ... >
+#
+# Instead of using all classifiers for all words found only a subset is used.
+# This subset of classifiers to use is found by scoring the classifiers and
+# using the classifiers with highest scores for the words found in the
+# document.
+#
+# Scoring is done by computing the 'quadratic distance' of a classifier to the uniform
+# distribution:
+# score = ( 0.5 - P_uni(S=spam|Wi) )^2 + ( 0.5 - P_uni(S=ham|Wi))^2
+#
+# Furthermore if a classifier assumes P_uni(S=spam|Wi) = 0 or P_uni(S=ham|Wi) = 0
+# the probability will be adjusted to 0.01.
+#    
+
 S = [:Spam, :Ham]
 
+# module to be mixed into a 'Spam Feature Database' to compute probabilities
+# from the database.
+#
+# It's assumed that the 'Spam Feature Database' provides the following
+# functions:
+#
+# occurences of word given Spam/Ham messages
+# countWord(word:String, type:{:Spam, :Ham}) => Int
+#
+# number of Spam/Ham messages learned
+# countType(type:{:Spam, :Ham}) => Int
+#
 module SpamDatabaseProbabilities
     # probabilities
     #
@@ -41,6 +148,7 @@ module SpamDatabaseProbabilities
     end
 end
 
+# our test database
 class SpamBaseKnowledge
     include SpamDatabaseProbabilities
 
@@ -94,49 +202,13 @@ class SpamBaseKnowledge
     end
 end
 
-#
-# P(S|Words) = < P(S|W1) * P(S|W2) * ... >
-#            = < P(W1|S) * prior > * < P(W2|S) * prior> * ...
-# 
-# with:
-#   P(S|Wi) = P(Wi|S) * prior
-#             ---------------
-#                  P(Wi)
-# 
-# but classifiers already premultiplied with uniform prior spam/ham
-# distribution:
-# Suppose P_uni is uniform distribution for spam/ham, thus P_uni(spam) = 0.5
-# and P_uni(ham) = 0.5
-# 
-#                  P(Wi | S) * P_uni(S)             P(Wi | S) * P_uni(S)
-#  P_uni(S | Wi) = --------------------  =  ------------------------------------
-#                       P(Wi)               Sum(s={spam,ham}) P(Wi|s) * P_uni(s)
-# 
-#                = < P(Wi|S) * P_uni(S) >
-# 
-# now Suppose prior is given, thus with new prior:
-# 
-#                 P(Wi|S) * P_prior(S)     P_uni(S|Wi) * P_prior(S)
-# P_prior(S|Wi) = --------------------  =  ------------------------
-#                       P(Wi)                      P_uni(S)
-# 
-#               = < P(Wi|S) * P_prior(S) >
-# 
-#               = < P_uni(S|Wi) * P_prior(S) >
-# 
-# => (since findClassifiers in class SpamClassifier returns P_uni(S|Wi) for
-# each word found in DB:
-# 
-# P(S|Words) = < P(S|W1) * P(S|W2) * ... >
-#            = < P(W1|S) * P_prior(S) > * < P(W2|S) * P_prior(S) > * ...
-#            = < P_uni(S|W1) * P_prior(S) > * < P_uni(S|W2) * P_prior(S) > * ...
-#    
-BayesianStrategie = proc {|classifiers, prior, _, _|
+# The naive bayesian classifier.
+BayesianStrategy = proc {|classifiers, prior, _, _|
     classifiers.map { |c|
         # compute < P_uni(S|Wi) * P_prior(S) > 
-        # and lift into Option type for doing bayesian inference (invalid cases
-        # are encoded with nil (it is important to use nil until the end for
-        # invalid cases for normalization).
+        # and use nil for invalid cases to do doing bayesian inference  (it is
+        # important to use nil until the end for invalid cases for
+        # normalization).
         prior.dep { |t|
             c.map { |t_c| t == t_c ? t : nil }
         }
@@ -147,8 +219,9 @@ BayesianStrategie = proc {|classifiers, prior, _, _|
     }.normalize
 }
 
-FisherStrategie = proc {|classifiers, prior, n, words|
-    hypothesis = BayesianStrategie.call(classifiers, prior, n, words)
+# use bayesian classifier and analyse using fhisher's method
+FisherStrategy = proc {|classifiers, prior, n, words|
+    hypothesis = BayesianStrategy.call(classifiers, prior, n, words)
     map = Hash.new(0)
 
     dof = classifiers.length # dof / 2
@@ -179,12 +252,13 @@ FisherStrategie = proc {|classifiers, prior, n, words|
     Distribution.new :MAP, map2
 }
 
+# other part of the database computing, scoring and storing the classifiers P_uni(S|Wi)
 class SpamClassifier
 
     def initialize(knowledge, strategie)
-        @knowledge = knowledge
-        @classifiers = {}
-        @strategie = strategie
+        @knowledge = knowledge # our database
+        @classifiers = {}      # the classifiers
+        @strategie = strategie # the strategy to use, naive bayesian or fisher's method
 
         buildClassifiers {|w,s,probs|
             @classifiers[w] = [s,probs]
@@ -195,6 +269,7 @@ class SpamClassifier
         @strategie.call(findClassifiers(words, n), prior, n, words)
     end
 
+    # classify a message using the n most prominent classifiers
     def classify(words, n = 15)
         pMsgTypeByWords(words, n).most_probable
     end
@@ -225,10 +300,10 @@ class SpamClassifier
     end
 end
 
-# learned database
-
-classifiers = [ SpamClassifier.new(SpamBaseKnowledge.new, BayesianStrategie), 
-                SpamClassifier.new(SpamBaseKnowledge.new, FisherStrategie) ]
+# run some tests using the test database, some key words and the different
+# strategies
+classifiers = [ ["bayesian", SpamClassifier.new(SpamBaseKnowledge.new, BayesianStrategy)], 
+                ["fisher's method", SpamClassifier.new(SpamBaseKnowledge.new, FisherStrategy)] ]
 
 testCorpus = [["free"],
               ["monad"],
@@ -239,7 +314,8 @@ testCorpus = [["free"],
 puts "\ntest classifier"
 testCorpus.each do |data|
     printf "use corpus: #{data}\n"
-    classifiers.each do |c|
+    classifiers.each do |n, c|
+        puts n
         puts c.pMsgTypeByWords(data)
         puts ""
     end
