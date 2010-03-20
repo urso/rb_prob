@@ -2,13 +2,13 @@
 
 require 'rubygems'
 
-gem 'rb_prob'; require 'prob'
+require 'prob'
 include Probably
 
 # Bayesian Spam filter example. 
 # We try to find the probability of a message it's classification being spam
 # or ham using a naive bayesian filter and a second filter using fisher's
-# methods to analyse the plausibility of the filter its result.
+# methods to analyse the plausibility of the first filter its result.
 #
 # In essence the bayesian filter tries to find the probability for the message
 # being spam using the message its features and previously seen messages.
@@ -34,10 +34,10 @@ include Probably
 # P(S|Wi) = ---------------
 #                P(Wi)
 #
-# But to minimize computational effort we precompute some a classifier for each
-# word assuming a uniform prior distrubition P(S) and put in the true prior
-# later. So we can store the classifiers direclty in our database instead of
-# recomputing them over and over again.
+# But to minimize computational effort a classifier for each word assuming a
+# uniform prior distribution P(S) is precomputed and the true prior is used
+# later on inference. So we can store the classifiers directly in our database
+# instead of recomputing them over and over again.
 #
 # P(S|Document) = < P(S|W1) * P(S|W2) * ... >
 #            = < P(W1|S) * prior * P(W2|S) * prior * ... >
@@ -49,11 +49,9 @@ include Probably
 #  P(S|Wi) = ---------------- = < P(Wi|S) * P(S) >
 #                 P(Wi)
 #
-# We want to explain how the classifiers are precomputed and how these
-# precomputed classifiers are used to do the classification now:
+# First we need to explain how the classifiers are precomputed and how these
+# precomputed classifiers are used to do the classification:
 # 
-# First let's precompute our classifiers:
-#
 # Suppose P_uni is uniform distribution for spam/ham, thus P_uni(spam) = 0.5
 # and P_uni(ham) = 0.5. Then
 # 
@@ -76,15 +74,15 @@ include Probably
 #               = P(S|Wi)
 # 
 # P(S|Document) = < P(S|W1) * P(S|W2) * ... >
-#               = < P(W1|S) * P_prior(S) > * < P(W2|S) * P_prior(S) > * ...
-#               = < P_uni(S|W1) * P_prior(S) > * < P_uni(S|W2) * P_prior(S) > * ...
+#               = < P(W1|S) * P_prior(S) * P(W2|S) * P_prior(S) * ... >
+#               = < P_uni(S|W1) * P_prior(S) * P_uni(S|W2) * P_prior(S)  * ... >
 #
 # Using these, our classifiers to store in the database are P_uni(S|Wi) for
 # each word found during learning. So when learning from new message not all
 # classifiers need to be recomputed. Alternatively one may want to store
-# P_prior(S|Wi) in the database, but when learning new messages all classifiers
-# need to be updated then. One may even assume the prior to alway uniformly
-# distributed. In that case P(S|Document) becomes
+# P_prior(S|Wi) in the database, but when learning from new messages all
+# classifiers need to be updated then. One may even assume the prior to always
+# be distributed uniform. In that case P(S|Document) becomes
 # P(S|Document) = < P_uni(S|W1) * P_uni(S|W2) ... >
 #
 # Instead of using all classifiers for all words found only a subset is used.
@@ -92,8 +90,8 @@ include Probably
 # using the classifiers with highest scores for the words found in the
 # document.
 #
-# Scoring is done by computing the 'quadratic distance' of a classifier to the uniform
-# distribution:
+# Scoring is done by computing the 'quadratic distance' of a classifier to the
+# uniform distribution:
 # score = ( 0.5 - P_uni(S=spam|Wi) )^2 + ( 0.5 - P_uni(S=ham|Wi))^2
 #
 # Furthermore if a classifier assumes P_uni(S=spam|Wi) = 0 or P_uni(S=ham|Wi) = 0
@@ -108,11 +106,10 @@ S = [:Spam, :Ham]
 # It's assumed that the 'Spam Feature Database' provides the following
 # functions:
 #
-# occurences of word given Spam/Ham messages
-# countWord(word:String, type:{:Spam, :Ham}) => Int
+# countWord(word:String, type:{:Spam, :Ham}) => Int # occurences of word given 
+#                                                   # Spam/Ham messages
 #
-# number of Spam/Ham messages learned
-# countType(type:{:Spam, :Ham}) => Int
+# countType(type:{:Spam, :Ham}) => Int # number of Spam/Ham messages learned
 #
 module SpamDatabaseProbabilities
     # probabilities
@@ -207,8 +204,8 @@ BayesianStrategy = proc {|classifiers, prior, _, _|
     classifiers.map { |c|
         # compute < P_uni(S|Wi) * P_prior(S) > 
         # and use nil for invalid cases to do doing bayesian inference  (it is
-        # important to use nil until the end for invalid cases for
-        # normalization).
+        # important to use nil for invalid cases until the end for invalid
+        # cases for normalization).
         prior.dep { |t|
             c.map { |t_c| t == t_c ? t : nil }
         }
@@ -219,7 +216,7 @@ BayesianStrategy = proc {|classifiers, prior, _, _|
     }.normalize
 }
 
-# use bayesian classifier and analyse using fhisher's method
+# use bayesian classifier and analyse using fisher's method
 FisherStrategy = proc {|classifiers, prior, n, words|
     hypothesis = BayesianStrategy.call(classifiers, prior, n, words)
     dof = classifiers.length # dof / 2
@@ -230,14 +227,19 @@ FisherStrategy = proc {|classifiers, prior, n, words|
         # chi_square = -2.0 * sum(i) { log(p_i) } 
         #            = -2.0 * log(p)
         #
-        # copmute p-value by
-        # with n = dof
+        # copmute p-value by solving
         #
         # integral( x^(n-1) * exp(-x/2) / (gamma(n) * 2^n) , -2 log(p), inf, dx)
         #
         #   integral ( x^(n-1) * exp(-x/2), -2 log(p), inf, dx) 
         # = ---------------------------------------------------
         #                       gamma(n) * 2^n
+        #
+        # = p * Sum(i = 1 to n) { (-log(p))^(n - i) / (n - i)! }
+        #
+        # = p + p * Sum(i = 1 to n-1) { (-log(p))^(n - i) / (n - i)! }
+        #
+        # with n = dof
 
         m = -Math.log(p) # 0.5 chi
         t = p # exp(-m) = exp(log(p)) = p
@@ -253,7 +255,8 @@ FisherStrategy = proc {|classifiers, prior, n, words|
     map
 }
 
-# other part of the database computing, scoring and storing the classifiers P_uni(S|Wi)
+# other part of the database computing, scoring and storing the classifiers 
+# P_uni(S|Wi)
 class SpamClassifier
 
     def initialize(knowledge, strategie)

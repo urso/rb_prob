@@ -1,7 +1,7 @@
 
 require 'rubygems'
 
-gem 'rb_prob'; require 'prob'
+require 'prob'
 include Probably
 
 # same problem as in diagnosis.rb, but with drug users and Test.

@@ -1,7 +1,7 @@
 
 require 'rubygems'
 
-gem 'rb_prob'; require 'prob'
+require 'prob'
 include Probably
 
 # Alarm example from "Artificial Intelligence - A Modern Approach" by Russel
@@ -109,7 +109,7 @@ end
 # P(B,E,A| J = true, M = true)
 #
 # or 
-# mk_joint_p2(B,E,A| J = true, M = true) {|b,e,a,j,m| b} will compute
+# mk_joint_p2({:john = :J, :mary = :M}) {|b,e,a,j,m| b} will find
 # P(B | J = true, M = true)
 def mk_joint_p2( tsts = {}, &blk )
     PBurglary.dep { |b|
@@ -130,7 +130,7 @@ def mk_joint_p2( tsts = {}, &blk )
     }}.normalize
 end
 
-# like mk_joint_p2, but using event_dep directly instead of mixin in
+# like mk_joint_p2, but using event_dep directly instead of mixing in
 # condition-statements
 def mk_joint_p3 (tsts = {}, &blk)
     tst_b = ifJust tsts[:burglary]

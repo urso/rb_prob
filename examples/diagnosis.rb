@@ -1,18 +1,18 @@
 
 require 'rubygems'
 
-gem 'rb_prob'; require 'prob'
+require 'prob'
 include Probably
 
 # 
 # Problem: 
-# Given a positive or negative test for a specific illness we wan't to know the
+# Given a positive or negative test for a specific illness we want to know the
 # probability for being ill or healthy.
 #
 # Suppose the random variables I and T are given with I = {Ill, Healthy}
 # being the health status and T = {Negative, Positive} the test result.
 #
-# It is known that the probability of being ill is 1 in a 1000,
+# It is known that the probability of being 'ill' is 1 in a 1000,
 # thus:
 # P(I = Ill) = 0.001 and P(I = Healthy) = 0.999
 #
@@ -23,7 +23,7 @@ include Probably
 # P(T = Negative | I = Healthy ) = 0.99
 #
 # Task:
-# compute the probability of being ill, given a test was positive.
+# compute the probability of being 'ill', given the test was positive.
 # Using bayes rule:
 #
 # P(T, I) = P(T|I) * P(I) = P(I|T) * P(T)
