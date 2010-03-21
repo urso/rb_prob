@@ -52,7 +52,7 @@ include Probably
 # P(B)
 PBurglary = choose(0.001,  :B, :notB )
 
-# P(A)
+# P(E)
 PEarthquake = choose(0.002,  :E, :notE)
 
 # P(A|B = b,E = e)

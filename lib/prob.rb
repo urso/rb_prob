@@ -124,12 +124,11 @@ module Probably
             return nil
         end
 
-        def each(f = nil, &blk)
-            #fn = f || blk
-            @map.each { |k, p| yield k, p }
+        def each
+            @map.each { |k, p| yield p, k }
         end
 
-        def map(f = nil)
+        def map
             tmp = Hash.new(0)
             for k,p in @map
                 tmp[yield(k)] += p
@@ -137,7 +136,7 @@ module Probably
             Distribution.new(:MAP, tmp)
         end
 
-        def filter(f = nil)
+        def filter
             Distribution.new :MAP, @map.reject { |k,v|
                 !(yield k)
             }
@@ -154,7 +153,7 @@ module Probably
             tmp = Hash.new(0)
 
             for dist,p1 in @map
-                for k, p2 in dist
+                for p2, k in dist
                     tmp[k] += p1 * p2 
                 end
             end
@@ -166,7 +165,7 @@ module Probably
             for k1,p1 in @map
                 tmp = yield k1
                 if tmp != nil
-                    for k, p2 in tmp
+                    for p2, k in tmp
                         m[k] += p1 * p2
                     end
                 end
@@ -319,7 +318,7 @@ module Probably
 
     def adjustMinimums(dist, newMin = 0.01)
         tmp = Hash.new(0)
-        dist.each do |k,p|
+        dist.each do |p,k|
             tmp[k] = if p > newMin then p else newMin end
         end
         Distribution.new :MAP, tmp

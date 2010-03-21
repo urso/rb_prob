@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-require 'rubygems'
+#require 'rubygems'
 
-require 'prob'
+require '../lib/prob'
 include Probably
 
 # Bayesian Spam filter example. 
@@ -222,8 +222,7 @@ FisherStrategy = proc {|classifiers, prior, n, words|
     dof = classifiers.length # dof / 2
     map = Hash.new(0)
 
-
-    hypothesis.each do |k,p|
+    for p,k in hypothesis
         # chi_square = -2.0 * sum(i) { log(p_i) } 
         #            = -2.0 * log(p)
         #
