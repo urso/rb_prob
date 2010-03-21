@@ -7,7 +7,7 @@ rb_prob is a simple monadic probabilistic programming library for ruby.
 Installation
 ------------
 
-rb_prob comes with a gem specification, but is not available from rubygem.com
+rb_prob comes with a gem specification, but is not available from rubygems.org
 yet. So to install you have to:
 
 1. get the source 
