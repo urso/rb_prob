@@ -1,14 +1,19 @@
 
 Introduction
-------------
+============
 
 rb_prob is a simple monadic probabilistic programming library for ruby.
 
 Installation
-------------
+============
 
-rb_prob comes with a gem specification, but is not available from rubygems.org
-yet. So to install you have to:
+## Install Gem
+
+rb_prob is available via rubygems.org and be installed using rubygems:
+
+    $ gem install rb_prob
+
+## Install From Source
 
 1. get the source 
     - from github: 
@@ -24,7 +29,7 @@ yet. So to install you have to:
     $ sudo gem install rb_prob
 
 Usage:
-------
+======
 
 To use rb_prob you need to use rubygems and require the library:
 
@@ -37,7 +42,7 @@ TODO: explain how to combine probabilities and different methods of applying
 events and doing bayesian inference.
 
 Examples
---------
+========
 
 The 'examples' directory contains documented examples describing the problem and
 solution with forumlas and code. It is recommended to read them to get a
