@@ -3,6 +3,10 @@ Introduction
 ============
 
 rb_prob is a simple monadic probabilistic programming library for ruby.
+Using monads directly can become quite messy. See package 
+[rb_probdsl](http://github.com/urso/rb_probdsl) for implicit probabilistic
+programming which uses rb_prob as backend (So one can mix the best of both
+worlds...)
 
 Installation
 ============
