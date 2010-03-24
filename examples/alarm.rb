@@ -90,7 +90,7 @@ def mk_joint_p(&blk)
             p_alarm(b, e).dep {|a|
                 p_john(a).dep { |j|
                     p_mary(a).dep {|m|
-                        mkState(if blk then blk.call([b,e,a,j,m])
+                        mk_const(if blk then blk.call([b,e,a,j,m])
                                 else [b,e,a,j,m] end)
                     }
                 }
@@ -122,7 +122,7 @@ def mk_joint_p2( tsts = {}, &blk )
                 condition(!tsts[:john] || tsts[:john] == j) {
                     p_mary(a).dep {|m|
                     condition(!tsts[:mary] || tsts[:mary] == m) {
-                        mkState(if blk then blk.call [b,e,a,j,m] else [b,e,a,j,m] end)
+                        mk_const(if blk then blk.call [b,e,a,j,m] else [b,e,a,j,m] end)
                     }}
                 }}
             }}
@@ -133,18 +133,18 @@ end
 # like mk_joint_p2, but using event_dep directly instead of mixing in
 # condition-statements
 def mk_joint_p3 (tsts = {}, &blk)
-    tst_b = ifJust tsts[:burglary]
-    tst_e = ifJust tsts[:earthquake]
-    tst_a = ifJust tsts[:alarm]
-    tst_j = ifJust tsts[:john]
-    tst_m = ifJust tsts[:mary]
+    tst_b = if_just tsts[:burglary]
+    tst_e = if_just tsts[:earthquake]
+    tst_a = if_just tsts[:alarm]
+    tst_j = if_just tsts[:john]
+    tst_m = if_just tsts[:mary]
 
     PBurglary.event_dep(tst_b) {|b|
         PEarthquake.event_dep(tst_e) {|e|
             p_alarm(b,e).event_dep(tst_a) {|a|
                 p_john(a).event_dep(tst_j) {|j|
                     p_mary(a).event_dep(tst_m) {|m|
-                        mkState(if blk then blk.call [b,e,a,j,m] else [b,e,a,j,m] end)
+                        mk_const(if blk then blk.call [b,e,a,j,m] else [b,e,a,j,m] end)
                     }
                 }
             }

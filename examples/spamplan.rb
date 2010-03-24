@@ -121,7 +121,7 @@ module SpamDatabaseProbabilities
     # P(W|S) <- likelyhood
     
     def pMsgType # P(S)
-        enumDist types, @msgCounts
+        enum_dist types, @msgCounts
     end
 
     def pWord(word, type) # P(W == word | S == type)
@@ -134,7 +134,7 @@ module SpamDatabaseProbabilities
     def pHasWord(word, prior = pMsgType)    
         prior.dep {|t|
             pWord(word, t).event_dep(just true) {
-                mkState(t)
+                mk_const(t)
             }
         }.normalize
     end
@@ -282,14 +282,14 @@ class SpamClassifier
         f.call uniform(@knowledge.types)
     end
 
-    def score(f = nil, &blk)
-        pDistance( characteristic(f || blk), uniform(@knowledge.types))
+    def score(&blk)
+        characteristic(blk).distance uniform(@knowledge.types)
     end
 
     def buildClassifiers
         @knowledge.knownWords.each {|w,types|
             s = score {|prior| @knowledge.pHasWord(w,prior)}
-            probs = adjustMinimums(@knowledge.pHasWord(w, uniform(S)))
+            probs = @knowledge.pHasWord(w, uniform(S)).adjust_min
             yield w, s, probs
         }
     end

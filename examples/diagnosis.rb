@@ -52,36 +52,37 @@ end
 # P(T|I)
 # but combine states and save final distribution in constant
 PTest = PDisease.dep {|i|
-    pTest(i).dep {|t| mkState([i,t]) }
+    pTest(i).dep {|t| mk_const([i,t]) }
 }
 
 testpred = Proc.new {|disease, test| disease == :ILL}
 
-p PTest
+puts "joint probability:"
+puts PTest
 
 # using filter we find on PTest which is P(T|I) we find 
 # P( I | T = Positive )
-p "probability of I if test is Positive:"
-p PTest.filter{|disease, test| test == :Positive}
+puts "probability of I if test is Positive:"
+puts PTest.filter{|disease, test| test == :Positive}
 
 # using the testpred function and query we can find the probability of all
 # events testpred returns true for. In this case P( I = Ill | T = Positive)
-p "probability of being ill"
-p PTest.filter{|disease,test| test == :Positive}.query? &testpred
+puts "\nprobability of being ill"
+puts PTest.filter{|disease,test| test == :Positive}.query? &testpred
 
 # next find the most probable explanation if Test was Positive:
-p "most probable"
-p PTest.filter{|disease,test| test == :Positive}.most_probable
+puts "\nmost probable"
+puts PTest.filter{|disease,test| test == :Positive}.most_probable
 
 # alternatively using condition on the monadic computation directly
 # and normalizing the result needed multiplications and memory may be reduced:
 # event_dep is like 'dep {|var| condition(var == :Positive) { ... } }'
-p "another way of finding P(I|T=Positive)"
-p PDisease.dep {|i|
+puts "\nanother way of finding P(I|T=Positive)"
+puts PDisease.dep {|i|
     # event_dep will execute block only if
     # Test was :Positive and return 'nil' else
     pTest(i).event_dep(just :Positive) { 
-        mkState(i)
+        mk_const(i)
     }
   }.normalize
 
