@@ -90,9 +90,9 @@ module Probably
         # to compute normalization of bayes theorem
         def normalize
             if @map[nil] > 0.0
-                filter { |value| value != nil }
+                self.filter { |value| value != nil }
             else
-                @self
+                self
             end
         end
 
@@ -131,17 +131,17 @@ module Probably
             @map.each do |value, prob|
                 tmp[yield(value)] += prob
             end
-            Distribution.new(:MAP, tmp)
+            self.class.new(:MAP, tmp)
         end
 
         def filter
-            Distribution.new :MAP, @map.reject { |value,prob|
+            self.class.new :MAP, @map.reject { |value,prob|
                 !(yield value)
             }
         end
 
         def reject
-            Distribution.new :MAP, @map.reject { |value, prob|
+            self.class.new :MAP, @map.reject { |value, prob|
                 yield value
             }
         end
@@ -161,11 +161,11 @@ module Probably
                     tmp[value] += p1 * p2 
                 end
             end
-            Distribution.new(:MAP, tmp)
+            self.class.new(:MAP, tmp)
         end
 
         def dep
-            Distribution.new :MAP, block1(Hash.new(0)) {|m|
+            self.class.new :MAP, block1(Hash.new(0)) {|m|
                 @map.each do |key, p1|
                     tmp = yield key
                     if tmp != nil
@@ -243,7 +243,7 @@ module Probably
             self.each do |prob, value|
                 tmp[value] = if prob > new_min then prob else new_min end
             end
-            Distribution.new :MAP, tmp
+            self.class.new :MAP, tmp
         end
     end
 
