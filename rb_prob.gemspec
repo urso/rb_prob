@@ -1,7 +1,7 @@
 
 spec = Gem::Specification.new do |s|
   s.name        = 'rb_prob'
-  s.version     = '0.0.2'
+  s.version     = '0.0.3'
   s.licenses    = 'BDS3'
   s.summary     = 'monadic probabilistic programming for ruby'
   s.description = 'monad programming programming library for ruby. for examples see github repository: http://github.com/urso/rb_prob'
